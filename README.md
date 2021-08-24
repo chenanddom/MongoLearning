@@ -50,3 +50,74 @@ userAdminAnyDatabase：只在admin数据库中可用，赋予用户所有数据�
 dbAdminAnyDatabase：只在admin数据库中可用，赋予用户所有数据库的dbAdmin权限。
 root：只在admin数据库中可用。超级账号，超级权限
 ```
+
+# 使用MongoDB进行查询操作
+1. Mongodb在查询的时候返回指定的列
+//返回嵌套文档的特定字段(可以是嵌套的情况)
+db.inventory.find({status:"A"},{status:1,item:1,"size.uom":1});
+![返回指定的列](files/mongo-return-special-column.png)
+
+2. 禁止返回指定的列(可以是嵌套的情况)
+![禁止返回指定列](files/mongo-prohibit-column.png)
+
+3. $elemMatch(匹配数组符合的元素)
+![$elemMatch执行前](files/mongo-operator.png)
+db.players.find({},{games:{$elemMatch:{score:{$gt:5}}},joined:1,lastLogin:1});
+![$elemMatch执行后](files/mongo-operator-2.png)
+
+4. $slice()
+```text
+指定要在 <arrayField> 中返回的元素数。 对于 <编号>：
+指定一个正数 n 以返回前 n 个元素。
+指定一个负数 n 以返回最后 n 个元素。
+如果 <number> 大于数组元素的数量，则查询返回所有数组元素。
+```
+![$slice执行之前](files/mongo-operator-3.png)
+db.inventory.find( { status: "A" }, { item: 1, status: 1, instock: { $slice: -1 } } )
+执行之后
+![$slice执行之后](files/mongo-operator-4.png)
+
+5. 嵌套文档的查询
+db.inventory.find({instock:{warehouse:"A",qty:5}});
+![嵌套文档的查询](files/mongo-nested.png)
+db.inventory.find({"instock":{$elemMatch:{qty:{$gt:10,$lte:20}}}});
+![嵌套文档的查询](files/mongo-nested-search.png)
+
+6. 指定与和或的条件
+//指定或条件
+db.inventory.find({$or:[{status:"A"},{qty:{$lt:30}}]});
+//指定和条件
+db.inventory.find({status:"A",qty:{$lt:30}});
+
+7. 数组元素组合满足标准
+```text
+上面的几个例子，对于数据的操作都是使用了$elemMatch和$slice操作符，如果对于条件不添加上面的操作符，
+那么查询将选择数组包含满足条件的元素任意组合的那些文档
+```
+使用操作
+db.inventory.find({"instock":{$elemMatch:{qty:{$gt:10,$lte:20}}}});
+![使用操作符的情况](files/mongo-nested-document-1.png)
+不使用操作符
+![不使用操作符](files/mongo-nested-document-2.png)
+
+8. 匹配数组
+如果需要严格匹配元素的包括顺序
+db.inventory.find({tags:["red","blank"]});
+![严格匹配数组](files/mongo-array-search-1.png)
+db.inventory.find({tags:{$all:["red","blank"]}});
+![非严格匹配数组,只要包好的情况](files/mongo-array-search-2.png)
+
+
+# MongoDB进行更新操作
+```text
+使用$set 运算符将size.uom字段的值更新为“ cm”，将状态字段的值更新为“ P”，
+使用$currentDate运算符将lastModified字段的值更新为当前日期。 如果lastModified字段不存在，则$currentDate将创建该字段。 有关详细信息，请参见$currentDate。
+```
+执行：
+db.inventory.updateOne({item:"paper"},{$set:{"size.uom":"cm",status:"p"},$currentDate:{lastModified:true}});
+![更新操作](files/mongo-update-1.png)
+
+
+
+
+
